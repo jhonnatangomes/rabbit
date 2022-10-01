@@ -1,4 +1,5 @@
 import { inspect } from 'util';
+import * as readline from 'readline';
 const IDENTIFIERS = /[0-9a-zA-Z?!_\-.]*/;
 const WHITESPACE = /\s/;
 
@@ -154,7 +155,6 @@ function parser(tokens: Token[]) {
       advanceToken();
       return node;
     }
-    console.log({ token });
     throw new Error(
       `Unexpected token ${token.value || token.type} in line ${
         token.lineNumber
@@ -219,12 +219,36 @@ function isIntegerLiteral(input: string) {
   const DIGIT = /[0-9]/;
   return DIGIT.test(input);
 }
-const a = lexer(`
-(+ 1 (* 5 3))
-(- 10 5)
-`);
-const b = parser(a);
-const c = evaluator(b);
-console.log(a);
-console.log(inspect(b, { depth: null }));
-console.log(c);
+// const a = lexer(`
+// (+ 1 (* 5 3))
+// (- 10 5)
+// `);
+// const b = parser(a);
+// const c = evaluator(b);
+// console.log(a);
+// console.log(inspect(b, { depth: null }));
+// console.log(c);
+
+function repl() {
+  console.log('Welcome to rabbit v0.0.0');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: '>> ',
+  });
+  rl.prompt();
+
+  rl.on('line', (input) => {
+    try {
+      const tokens = lexer(input);
+      const ast = parser(tokens);
+      const result = evaluator(ast);
+      console.log(result[0]);
+    } catch (error) {
+      console.log(error.message);
+    } finally {
+      rl.prompt();
+    }
+  }).on('close', () => console.log('Thanks for using rabbit'));
+}
+repl();
