@@ -245,7 +245,7 @@ function repl() {
       const result = evaluator(ast);
       console.log(result[0]);
     } catch (error) {
-      console.log(error.message);
+      console.log(`Error: ${error.message}`);
     } finally {
       rl.prompt();
     }
