@@ -146,11 +146,15 @@ function parser(tokens: Token[]) {
       //@ts-ignore
       while (currentIndex < tokens.length && token.type !== RPAREN) {
         node.arguments.push(walk());
-        advanceToken();
+        //@ts-ignore
+        if (token.type !== RPAREN) {
+          advanceToken();
+        }
       }
       advanceToken();
       return node;
     }
+    console.log({ token });
     throw new Error(
       `Unexpected token ${token.value || token.type} in line ${
         token.lineNumber
@@ -216,9 +220,8 @@ function isIntegerLiteral(input: string) {
   return DIGIT.test(input);
 }
 const a = lexer(`
-(+ 1 (+ 1))
-(+ 1)
-(+ 1)
+(+ 1 (* 5 3))
+(- 10 5)
 `);
 const b = parser(a);
 const c = evaluator(b);
