@@ -11,5 +11,8 @@
   },
   "scripts": {
     "ts-node": "ts-node"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.23"
   }
 }

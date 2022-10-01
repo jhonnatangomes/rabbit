@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "noImplicitAny": true,
     "lib": ["ES2019", "DOM"]
   }
 }
