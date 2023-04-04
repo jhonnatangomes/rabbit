@@ -7,7 +7,7 @@ impl Chunk {
             self.disassemble_instruction(i, instruction);
         }
     }
-    fn disassemble_instruction(&self, offset: usize, instruction: &OpCode) {
+    pub fn disassemble_instruction(&self, offset: usize, instruction: &OpCode) {
         print!("{:04} ", offset);
         if offset > 0 && self.positions[offset].line == self.positions[offset - 1].line {
             print!("   | ");
@@ -16,6 +16,11 @@ impl Chunk {
         }
         match instruction {
             OpCode::Constant(index) => self.constant_instruction("OP_CONSTANT", *index),
+            OpCode::Negate => self.simple_instruction("OP_NEGATE"),
+            OpCode::Add => self.simple_instruction("OP_ADD"),
+            OpCode::Subtract => self.simple_instruction("OP_SUBTRACT"),
+            OpCode::Multiply => self.simple_instruction("OP_MULTIPLY"),
+            OpCode::Divide => self.simple_instruction("OP_DIVIDE"),
             OpCode::Return => self.simple_instruction("OP_RETURN"),
         }
     }
