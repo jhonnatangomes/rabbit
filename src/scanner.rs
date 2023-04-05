@@ -43,6 +43,8 @@ impl<'a> Scanner<'a> {
             ',' => self.add_token(TokenType::Comma, start, start + 1),
             '.' => self.add_token(TokenType::Dot, start, start + 1),
             ';' => self.add_token(TokenType::Semicolon, start, start + 1),
+            '?' => self.add_token(TokenType::Question, start, start + 1),
+            ':' => self.add_token(TokenType::Colon, start, start + 1),
             '!' => {
                 if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::BangEqual, start, start + 2);
@@ -244,6 +246,8 @@ pub enum TokenType {
     Comma,
     Dot,
     Semicolon,
+    Question,
+    Colon,
 
     // One or two character tokens.
     Bang,
@@ -318,7 +322,7 @@ mod tests {
 
     #[test]
     fn single_char_scan_works() {
-        let source = String::from("()[]{};,.");
+        let source = String::from("()[]{};,.?:");
         let scanner = Scanner::new(&source);
         let tokens = tokens_to_tokens_with_lexeme(scanner.scan_tokens().unwrap(), &source);
         assert_eq!(
@@ -359,6 +363,14 @@ mod tests {
                 TokenWithLexeme {
                     token_type: TokenType::Dot,
                     lexeme: "."
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Question,
+                    lexeme: "?"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Colon,
+                    lexeme: ":"
                 },
                 TokenWithLexeme {
                     token_type: TokenType::Eof,
