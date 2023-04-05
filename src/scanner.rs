@@ -44,65 +44,65 @@ impl<'a> Scanner<'a> {
             '.' => self.add_token(TokenType::Dot, start, start + 1),
             ';' => self.add_token(TokenType::Semicolon, start, start + 1),
             '!' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::BangEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Bang, start, start + 1);
                 }
             }
             '=' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::EqualEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Equal, start, start + 1);
                 }
             }
             '<' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::LessEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Less, start, start + 1);
                 }
             }
             '>' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::GreaterEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Greater, start, start + 1);
                 }
             }
             '+' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::PlusEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Plus, start, start + 1);
                 }
             }
             '-' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::MinusEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Minus, start, start + 1);
                 }
             }
             '*' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::StarEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Star, start, start + 1);
                 }
             }
             '/' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::SlashEqual, start, start + 2);
-                } else if let Some((_, '/')) = self.char_indices.next_if_eq(&(start, '/')) {
+                } else if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '/') {
                     self.comment();
                 } else {
                     self.add_token(TokenType::Slash, start, start + 1);
                 }
             }
             '%' => {
-                if let Some((_, '=')) = self.char_indices.next_if_eq(&(start, '=')) {
+                if let Some(_) = self.char_indices.next_if(|&(_, c)| c == '=') {
                     self.add_token(TokenType::PercentEqual, start, start + 2);
                 } else {
                     self.add_token(TokenType::Percent, start, start + 1);
@@ -175,7 +175,7 @@ impl<'a> Scanner<'a> {
         } else {
             let token = Token {
                 token_type: TokenType::Error,
-                span: Range { start, end },
+                span: start..end,
             };
             self.error("Unterminated string.", " at end", token);
         }
@@ -185,10 +185,15 @@ impl<'a> Scanner<'a> {
         while let Some((j, _)) = self.char_indices.next_if(|&(_, c)| c.is_ascii_digit()) {
             end = j + 1;
         }
-        if let Some((j, _)) = self.char_indices.next_if_eq(&(end, '.')) {
-            end = j + 1;
-            while let Some((j, _)) = self.char_indices.next_if(|&(_, c)| c.is_ascii_digit()) {
-                end = j + 1;
+        if let Some((j, _)) = self.char_indices.next_if(|&(_, c)| c == '.') {
+            if let Some((_, '0'..='9')) = self.char_indices.peek() {
+                while let Some((j, _)) = self.char_indices.next_if(|&(_, c)| c.is_ascii_digit()) {
+                    end = j + 1;
+                }
+            } else {
+                self.add_token(TokenType::Number, start, j);
+                self.add_token(TokenType::Dot, j, j + 1);
+                return;
             }
         }
         self.add_token(TokenType::Number, start, end);
@@ -207,7 +212,7 @@ pub struct Token {
 
 impl Token {
     fn error(&self, source: &String, message: &str, at: &str) -> String {
-        let lines: Vec<&str> = source[..self.span.start].lines().collect();
+        let lines: Vec<&str> = source[..=self.span.start].lines().collect();
         let line = lines.len();
         let column = lines.last().unwrap().len();
         let header = format!("Error{at}: {message}\n");
@@ -217,7 +222,7 @@ impl Token {
         );
         let footer = format!(
             "{}{}\n",
-            " ".repeat(line.to_string().len() + column.to_string().len() + 8),
+            " ".repeat(line.to_string().len() + column.to_string().len() + 8 + column - 1),
             "^".repeat(self.span.end - self.span.start)
         );
         header + &body + &footer
@@ -227,7 +232,7 @@ impl Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -287,4 +292,316 @@ pub enum TokenType {
 
     Error,
     Eof,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[derive(Debug, PartialEq)]
+    struct TokenWithLexeme<'a> {
+        token_type: TokenType,
+        lexeme: &'a str,
+    }
+
+    fn tokens_to_tokens_with_lexeme<'a>(
+        tokens: Vec<Token>,
+        source: &'a String,
+    ) -> Vec<TokenWithLexeme<'a>> {
+        tokens
+            .into_iter()
+            .map(|t| TokenWithLexeme {
+                token_type: t.token_type,
+                lexeme: &source[t.span],
+            })
+            .collect::<Vec<TokenWithLexeme>>()
+    }
+
+    #[test]
+    fn single_char_scan_works() {
+        let source = String::from("()[]{};,.");
+        let scanner = Scanner::new(&source);
+        let tokens = tokens_to_tokens_with_lexeme(scanner.scan_tokens().unwrap(), &source);
+        assert_eq!(
+            tokens,
+            vec![
+                TokenWithLexeme {
+                    token_type: TokenType::LeftParen,
+                    lexeme: "("
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::RightParen,
+                    lexeme: ")"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::LeftBracket,
+                    lexeme: "["
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::RightBracket,
+                    lexeme: "]"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::LeftBrace,
+                    lexeme: "{"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::RightBrace,
+                    lexeme: "}"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Semicolon,
+                    lexeme: ";"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Comma,
+                    lexeme: ","
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Dot,
+                    lexeme: "."
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Eof,
+                    lexeme: ""
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn double_char_scan_works() {
+        let source = String::from("! != = == > >= < <= + += - -= * *= / /= % %=");
+        let scanner = Scanner::new(&source);
+        let tokens = tokens_to_tokens_with_lexeme(scanner.scan_tokens().unwrap(), &source);
+        assert_eq!(
+            tokens,
+            vec![
+                TokenWithLexeme {
+                    token_type: TokenType::Bang,
+                    lexeme: "!"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::BangEqual,
+                    lexeme: "!="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Equal,
+                    lexeme: "="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::EqualEqual,
+                    lexeme: "=="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Greater,
+                    lexeme: ">"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::GreaterEqual,
+                    lexeme: ">="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Less,
+                    lexeme: "<"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::LessEqual,
+                    lexeme: "<="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Plus,
+                    lexeme: "+"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::PlusEqual,
+                    lexeme: "+="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Minus,
+                    lexeme: "-"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::MinusEqual,
+                    lexeme: "-="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Star,
+                    lexeme: "*"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::StarEqual,
+                    lexeme: "*="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Slash,
+                    lexeme: "/"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::SlashEqual,
+                    lexeme: "/="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Percent,
+                    lexeme: "%"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::PercentEqual,
+                    lexeme: "%="
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Eof,
+                    lexeme: ""
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn string_scan_works() {
+        let source = String::from("\"hello world\" \"test\"");
+        let scanner = Scanner::new(&source);
+        let tokens = tokens_to_tokens_with_lexeme(scanner.scan_tokens().unwrap(), &source);
+        assert_eq!(
+            tokens,
+            vec![
+                TokenWithLexeme {
+                    token_type: TokenType::String,
+                    lexeme: "\"hello world\""
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::String,
+                    lexeme: "\"test\""
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Eof,
+                    lexeme: ""
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn number_scan_works() {
+        let source = String::from("123 123.456 123.");
+        let scanner = Scanner::new(&source);
+        let tokens = tokens_to_tokens_with_lexeme(scanner.scan_tokens().unwrap(), &source);
+        assert_eq!(
+            tokens,
+            vec![
+                TokenWithLexeme {
+                    token_type: TokenType::Number,
+                    lexeme: "123"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Number,
+                    lexeme: "123.456"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Number,
+                    lexeme: "123"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Dot,
+                    lexeme: "."
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Eof,
+                    lexeme: ""
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn identifier_scan_works() {
+        let source = String::from("hello world test 123.method");
+        let scanner = Scanner::new(&source);
+        let tokens = tokens_to_tokens_with_lexeme(scanner.scan_tokens().unwrap(), &source);
+        assert_eq!(
+            tokens,
+            vec![
+                TokenWithLexeme {
+                    token_type: TokenType::Identifier,
+                    lexeme: "hello"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Identifier,
+                    lexeme: "world"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Identifier,
+                    lexeme: "test"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Number,
+                    lexeme: "123"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Dot,
+                    lexeme: "."
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Identifier,
+                    lexeme: "method"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Eof,
+                    lexeme: ""
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn comments_and_whitespace_scan_works() {
+        let source = String::from(
+            " // hello world
+        // test
+        hello",
+        );
+        let scanner = Scanner::new(&source);
+        let tokens = tokens_to_tokens_with_lexeme(scanner.scan_tokens().unwrap(), &source);
+        assert_eq!(
+            tokens,
+            vec![
+                TokenWithLexeme {
+                    token_type: TokenType::Identifier,
+                    lexeme: "hello"
+                },
+                TokenWithLexeme {
+                    token_type: TokenType::Eof,
+                    lexeme: ""
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn unterminated_string_fails() {
+        let source = String::from("\"hello world");
+        let scanner = Scanner::new(&source);
+        let tokens = scanner.scan_tokens();
+        assert!(tokens.is_err());
+    }
+
+    #[test]
+    fn unexpected_character_fails() {
+        let source = String::from("#");
+        let scanner = Scanner::new(&source);
+        let tokens = scanner.scan_tokens();
+        assert!(tokens.is_err());
+    }
+
+    #[test]
+    fn error_reporting_string_works() {
+        let source = String::from("\n\n\n  \"hello world");
+        let token = Token {
+            token_type: TokenType::Error,
+            span: 5..17,
+        };
+        assert_eq!(
+            token.error(&source, "Unterminated string.", " at end"),
+            "Error at end: Unterminated string.\n  | [4:3]   \"hello world\n            ^^^^^^^^^^^^\n",
+        );
+    }
 }

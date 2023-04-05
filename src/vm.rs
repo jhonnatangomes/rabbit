@@ -71,6 +71,7 @@ impl Vm {
     }
 }
 
+#[derive(Debug)]
 pub enum InterpretResult {
     Ok,
     SyntaxError,
