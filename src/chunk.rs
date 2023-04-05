@@ -3,7 +3,7 @@ use crate::value::Value;
 pub struct Chunk {
     pub code: Vec<OpCode>,
     pub constants: Vec<Value>,
-    pub positions: Vec<Position>,
+    pub spans: Vec<Span>,
 }
 
 impl Chunk {
@@ -11,12 +11,12 @@ impl Chunk {
         Chunk {
             code: vec![],
             constants: vec![],
-            positions: vec![],
+            spans: vec![],
         }
     }
-    pub fn write(&mut self, opcode: OpCode, position: Position) {
+    pub fn write(&mut self, opcode: OpCode, span: Span) {
         self.code.push(opcode);
-        self.positions.push(position);
+        self.spans.push(span);
     }
     pub fn add_constant(&mut self, value: Value) -> usize {
         self.constants.push(value);
@@ -34,7 +34,7 @@ pub enum OpCode {
     Return,
 }
 
-pub struct Position {
+pub struct Span {
     pub line: usize,
     pub column: usize,
 }

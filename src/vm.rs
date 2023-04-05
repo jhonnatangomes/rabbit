@@ -73,6 +73,7 @@ impl Vm {
 
 pub enum InterpretResult {
     Ok,
+    SyntaxError,
     CompileError,
     RuntimeError,
 }

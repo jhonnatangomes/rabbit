@@ -9,10 +9,10 @@ impl Chunk {
     }
     pub fn disassemble_instruction(&self, offset: usize, instruction: &OpCode) {
         print!("{:04} ", offset);
-        if offset > 0 && self.positions[offset].line == self.positions[offset - 1].line {
+        if offset > 0 && self.spans[offset].line == self.spans[offset - 1].line {
             print!("   | ");
         } else {
-            print!("{:4} ", self.positions[offset].line);
+            print!("{:4} ", self.spans[offset].line);
         }
         match instruction {
             OpCode::Constant(index) => self.constant_instruction("OP_CONSTANT", *index),
